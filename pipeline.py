@@ -3,12 +3,12 @@ from langchain_openai import embeddings, ChatOpenAI
 from langchain_community.vectorstores import Chroma
 
 from helper_fncs import (
-    OPENAI_API_KEY, 
+    OPENAI_API_KEY,
     GEMINI_API_KEY, 
 )
 
 def chunk_data(data, chunk_size=256, chunk_overlap=20):
-    from langchain.text_splitter import RecursiveCharacterTextSplitter
+    from langchain_text_splitters import RecursiveCharacterTextSplitter
 
     text_splitter = RecursiveCharacterTextSplitter(
         chunk_size=chunk_size,
@@ -39,8 +39,9 @@ def ask_and_get_answer(
     k=3
 ):
     
-    from langchain.chains import RetrievalQA
-    from langchain.chat_models import ChatOpenAI
+    from langchain_core.prompts import ChatPromptTemplate
+    from langchain_core.runnables import RunnablePassthrough
+    from langchain_core.output_parsers import StrOutputParser
     from langchain_google_genai import ChatGoogleGenerativeAI
 
     llm = ChatGoogleGenerativeAI(
@@ -52,13 +53,30 @@ def ask_and_get_answer(
         search_kwargs={'k': k}
     )
 
-    chain = RetrievalQA.from_chain_type(
-        llm=llm,
-        chain_type='stuff',
-        retriever=retriever
-    )
+    # Create a prompt template for the QA task
+    template = """Answer the question based only on the following context:
+{context}
 
-    return chain.run(q)
+Question: {question}
+
+Answer:"""
+    
+    prompt = ChatPromptTemplate.from_template(template)
+    
+    # Create a simple RAG chain using LCEL (LangChain Expression Language)
+    def format_docs(docs):
+        return "\n\n".join(doc.page_content for doc in docs)
+    
+    rag_chain = (
+        {"context": retriever | format_docs, "question": RunnablePassthrough()}
+        | prompt
+        | llm
+        | StrOutputParser()
+    )
+    
+    # Run the chain and return the answer
+    response = rag_chain.invoke(q)
+    return response
     
 
 def calculate_embedding_cost(texts):

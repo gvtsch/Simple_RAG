@@ -24,15 +24,15 @@ def load_document(file):
     name, ext = os.path.splitext(file)
 
     if ext == '.pdf':
-        from langchain.document_loaders import PyPDFLoader
+        from langchain_community.document_loaders import PyPDFLoader
         print(f"Loading document {file}...")
         loader = PyPDFLoader(file)
     elif ext == '.docx':
-        from langchain.document_loaders import Docx2txtLoader
+        from langchain_community.document_loaders import Docx2txtLoader
         print(f"Loading document {file}...")
         loader = Docx2txtLoader(file)
     elif ext == '.txt':
-        from langchain.document_loaders import TextLoader
+        from langchain_community.document_loaders import TextLoader
         print(f"Loading document {file}...")
         loader = TextLoader(file, encoding='utf-8')
     else:
